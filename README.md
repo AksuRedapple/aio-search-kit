@@ -77,6 +77,7 @@ curl -s "http://127.0.0.1:8792/stats" | python3 -m json.tool
 | [`docs/backbone-design.md`](docs/backbone-design.md) | 为什么公共面是 MCP、四接口、P0–P4 迁移路径、五条风险 |
 | [`docs/regress.sh.example`](docs/regress.sh.example) | 把评测变成闸门的脚本：基线 + 查询集哈希 + 阈值按题量取粒度 |
 | [`docs/redaction.md`](docs/redaction.md) | 开源前脱敏清单（我们自己的作业标准） |
+| [`docs/READINGS.md`](docs/READINGS.md) | **想懂为什么**：每个问题对应读哪篇现场文章 |
 
 一句话：**代码能抄走，判据抄不走**——所以判据单独成册放在同一仓里。
 
