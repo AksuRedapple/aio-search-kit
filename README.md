@@ -15,6 +15,8 @@
 | **降级** | 主 provider 超限或失败 → 自动切到下一个（默认 keyless Firecrawl），降级原因写进记录 |
 | **对账** | `/stats` 回答四问：花了多少 / 命中率 / 降级分布 / 各 provider 的 p50-p95 |
 
+> 第一次来？先读 [`docs/INTRO.md`](docs/INTRO.md)：**这是什么 / 适合谁 / 别期待什么**（三分钟）。
+
 ## 快速开始（零第三方 Python 依赖）
 
 ```bash
