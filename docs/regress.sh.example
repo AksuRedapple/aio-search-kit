@@ -1,0 +1,61 @@
+#!/bin/bash
+# regress.sh —— 把 grounded 评测变成**回归闸**
+#
+# 为什么：评测原来是一次性实验（grounded-result.json 于 10-29 跑过一次），
+# 改插件前后不会自动重跑，所以"改动是否让质量变差"没人知道。
+#
+# 用法：
+#   bash eval/regress.sh                # 跑 20 条，与基线比较
+#   N=40 bash eval/regress.sh           # 跑更多
+#   UPDATE_BASELINE=1 bash eval/regress.sh   # 把本次结果写成新基线（需人工确认）
+#
+# 判据：grounded_rate 相对基线下降 > 10 个百分点 → exit 1（闸门红）
+set -uo pipefail
+HERE="$(cd "$(dirname "$0")" && pwd)"
+# 评测执行器目录（默认指向作者本机的 harness；换环境请设 LAB_DIR）
+LAB="${LAB_DIR:-$HOME/projects/search-lab/harness}"
+BASE="$HERE/baseline-grounded.json"
+N="${N:-20}"
+OUT="$HERE/regress-$(date +%Y%m%d-%H%M).json"
+
+[ -f "$LAB/run.mjs" ] || { echo "❌ 缺 harness：$LAB/run.mjs"; exit 2; }
+[ -f "<你的凭据文件>" ] || { echo "❌ 缺 harness 依赖的凭据文件（仪器侧）"; exit 2; }
+
+echo "== grounded 回归：N=$N 后端=dsh-plugin =="
+( cd "$LAB" && ONLY=dsh-plugin N="$N" node run.mjs ) || { echo "❌ harness 执行失败（仪器）"; exit 2; }
+
+cp "$LAB/grounded-result.json" "$OUT"
+python3 - "$OUT" "$BASE" "$HERE/regress-tags.json" <<'PY'
+import json,sys,os
+cur,base,tagsf=sys.argv[1],sys.argv[2],sys.argv[3]
+c=json.load(open(cur))["dsh-plugin"]
+# 关键：分两个口径——overall 与 web-answerable。
+# 回归集里混有"需要本地/个人上下文"的查询（我的机器、我的浏览器），网络不该被指望答对；
+# 把它们算进分母会让分数被"必然答不出"的题拉低，闸门就失去意义。
+tags={t["q"]:t for t in json.load(open(tagsf))} if os.path.exists(tagsf) else {}
+g=[r for r in c["res"] if tags.get(r["q"],{}).get("web_answerable",True)]
+if g:
+    wa_rate=sum(1 for r in g if r.get("ok"))/len(g)
+    c["web_answerable_n"]=len(g)
+    c["web_answerable_grounded"]=sum(1 for r in g if r.get("ok"))
+    c["web_answerable_rate"]=wa_rate
+else:
+    c["web_answerable_rate"]=c["rate"]
+rate=c["rate"]
+print("本次 overall %d/%d = %.1f%%｜web-answerable %d/%d = %.1f%%｜中位 %sms" % (c["grounded"], c["n"], rate*100, c.get("web_answerable_grounded",0), c.get("web_answerable_n",0), c.get("web_answerable_rate",0)*100, c["medianMs"]))
+if os.environ.get("UPDATE_BASELINE") == "1":
+    json.dump({"dsh-plugin": {k: c[k] for k in ("n","grounded","rate","web_answerable_n","web_answerable_grounded","web_answerable_rate","medianMs") if k in c}},
+              open(base,"w"), ensure_ascii=False, indent=1)
+    print("已写入基线：%s" % base); sys.exit(0)
+if not os.path.exists(base):
+    print("⚠️ 尚无基线（首次运行）：请人工看过本轮结果后 UPDATE_BASELINE=1 再跑一次"); sys.exit(3)
+b=json.load(open(base))["dsh-plugin"]
+drop=(b["rate"]-rate)*100
+print("基线：%d/%d = %.1f%%｜差 %+.1f 个百分点" % (b["grounded"], b["n"], b["rate"]*100, -drop))
+drop_wa=(b.get("web_answerable_rate",b["rate"])-c.get("web_answerable_rate",rate))*100
+print("web-answerable 相对基线：%+.1f 个百分点" % (-drop_wa))
+if drop_wa > 10:
+    print("❌ 闸门红：grounded 下降超过 10 个百分点"); sys.exit(1)
+print("✅ 闸门绿")
+PY
+rc=$?; echo "  结果文件：$OUT"; exit $rc

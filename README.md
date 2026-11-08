@@ -65,6 +65,21 @@ curl -s "http://127.0.0.1:8792/stats" | python3 -m json.tool
 4. **测试流量要能被剔除**：`origin=test` 与真实流量分开统计，否则命中率会被压测刷高。
 5. **keyless 是备路不是主路**：免费额度按 IP 限流，随时可能收紧。
 
+## 为什么这么设计（方法论在 `docs/`）
+
+这套东西的判断依据不藏在这里，都在 `docs/`：
+
+| 文档 | 讲什么 |
+|---|---|
+| [`docs/journal-fields.md`](docs/journal-fields.md) | 一次检索该记哪 14 个字段，每个字段回答什么排障问题 |
+| [`docs/eval-protocol.md`](docs/eval-protocol.md) | 质量怎么判：三判据 + 两口径 + "伪失败"识别 |
+| [`docs/architecture-study.md`](docs/architecture-study.md) | 一份 442 行的实现考古：数据流、状态面、**35 条静默失败点**、宿主耦合面 |
+| [`docs/backbone-design.md`](docs/backbone-design.md) | 为什么公共面是 MCP、四接口、P0–P4 迁移路径、五条风险 |
+| [`docs/regress.sh.example`](docs/regress.sh.example) | 把评测变成闸门的脚本：基线 + 查询集哈希 + 阈值按题量取粒度 |
+| [`docs/redaction.md`](docs/redaction.md) | 开源前脱敏清单（我们自己的作业标准） |
+
+一句话：**代码能抄走，判据抄不走**——所以判据单独成册放在同一仓里。
+
 ## 边界
 
 - **只管搜索**，不抓正文、不做答案生成；
