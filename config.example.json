@@ -1,0 +1,15 @@
+{
+  "_说明": "复制成 ~/.aio-searchd/config.json。providers 顺序即优先级，第一个成功就返回。",
+  "daily_max_calls": 200,
+  "daily_max_cny": 2.0,
+  "cost_per_call": 0.0,
+  "node_bin": "node",
+  "providers": [
+    {
+      "name": "firecrawl",
+      "type": "mcp",
+      "tool": "firecrawl_search",
+      "cmd": ["npx", "-y", "firecrawl-mcp"]
+    }
+  ]
+}
