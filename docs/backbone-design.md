@@ -55,7 +55,7 @@ GET  /health
 
 ## 三·补：核心已与宿主解耦（2026-11-08 落地）
 
-`aio-search-core`（`dsh-plugins/dsh-web-search-plus/standalone.mjs`，:8793）已经跑起来：
+`aio-search-core`（参考实现的 `standalone.mjs`，:8793）已经跑起来：
 **同一份 `lib/index.js`**，只把宿主的 5 个接入点（`ctx.get('credentials'|'agents')`、`ctx.web.register`）换成 `host.mjs` 的本地实现。
 dsh 插件从此可以退化成 10 行适配器，**不再是必需品**。
 
